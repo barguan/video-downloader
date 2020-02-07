@@ -36,6 +36,8 @@ class Ui(QtWidgets.QMainWindow):
         self.lineEditDownloadLocation.returnPressed.connect(
             self.onSaveLocationChange)
 
+        # connect controls and variable names
+
         # initialize progressbar
         self.progressBar.setValue(0)
 
@@ -66,6 +68,12 @@ class Ui(QtWidgets.QMainWindow):
             230, 230, Qt.KeepAspectRatio, Qt.FastTransformation)
         self.labelThumbnail.setPixmap(pixmap)
 
+        # Populate combo box
+        streams = ytube.streams.filter(adaptive=True).all()
+        for stream in streams:
+            if stream.mime_type == "video/mp4" and stream.resolution is not None:
+                self.comboBoxQuality.addItem(stream.resolution, stream.itag)
+
         # debug information
         self.logger.info(f"URL: {link}")
         self.logger.info(f"Video Title: {ytube.title}")
@@ -73,7 +81,7 @@ class Ui(QtWidgets.QMainWindow):
             f"Video Thumbnail: {getVideoThumbnail(ytube.video_id)}")
 
     def getSaveLocation(self):
-        """ Get user selected directory when the get location button is clicked.
+        """ Get user selected directory when the download button is clicked.
         """
         global directory
         directory = str(QFileDialog.getExistingDirectory(
@@ -82,7 +90,7 @@ class Ui(QtWidgets.QMainWindow):
         self.logger.info(f"function: getSaveLocation - directory: {directory}")
 
     def onSaveLocationChange(self):
-        """ Get save location by user text input
+        """ Get save location by user text input (manual location input)
         """
         global directory
         entered_directory = self.lineEditDownloadLocation.text()
@@ -100,6 +108,12 @@ class Ui(QtWidgets.QMainWindow):
         """
         global ytube
         global directory
+
+        # get selected stream quality (itag)
+        self.logger.info(
+            f"itag of quality selected is "
+            f"{self.comboBoxQuality.itemData(self.comboBoxQuality.currentIndex())}")
+        # todo: pass itag into download()
 
         if ytube is not None:
             self.download(directory)
@@ -120,9 +134,7 @@ class Ui(QtWidgets.QMainWindow):
         """
         Updates progress bar on download_progress callback
         """
-        # print("on process callback")
         file_size = stream.filesize
-        # print(f"{round((1 - bytes_remaining / file_size) * 100, 3)}%")
         self.progressBar.setValue(
             round((1 - bytes_remaining / file_size) * 100, 3))
 
@@ -134,12 +146,10 @@ class Ui(QtWidgets.QMainWindow):
             quality: The stream quality of the video to be downloaded
 
         """
-        # TODO: support manual directory entry
-
         global ytube
 
-        print(f"location: {location}")
-        print(f"quality: {quality}")
+        self.logger.info(f"location: {location}")
+        self.logger.info(f"quality: {quality}")
 
         if location is None:
             location = './downloads'
